@@ -86,7 +86,7 @@ public class GreyCode {
             if (N > -1 && N <24){
         
                 //create filename using N
-                String fileName = "grayCodeOut" + input + ".txt";
+                String fileName = "output\\grayCodeOut" + input + ".txt";
         
                 //open or create file
                 try {
