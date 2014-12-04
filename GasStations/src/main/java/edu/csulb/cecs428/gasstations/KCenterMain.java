@@ -29,6 +29,8 @@ public class KCenterMain {
     private static ArrayList<Edge> removeList;
     private static ArrayList<Node> nodeList;
     private static PrintWriter writer;
+    private static ArrayList<Integer> preCond;
+    private static ArrayList<Edge> preEdgeList;
     private static int size;
 
     //=================
@@ -108,8 +110,8 @@ public class KCenterMain {
         }
 
         updateNodes();
-        System.out.println("remaining edges : " + edgeList.size());
         Collections.sort(edgeList);
+        System.out.println("starting edges : " + edgeList.size() + " vertices : " + vertices.size());
     }
 
     /**
@@ -133,7 +135,11 @@ public class KCenterMain {
         }
         Collections.sort(nodeList);
     }
-
+    
+    //===================
+    //= Primary Methods =
+    //===================
+      
     /**
      * remove all edges from edgeList for node i clean up edgeList and sort by
      * weight
@@ -150,6 +156,32 @@ public class KCenterMain {
             if (e.getI() == i || e.getJ() == i) {
                 removeList.add(e);
             } else if (!vertices.contains(e.getI()) && !vertices.contains(e.getJ())) {
+                //removeList.add(e);
+            }
+        }
+
+        for (Edge e : removeList) {
+            if (vertices.contains(e.getJ())) {
+                vertices.remove(new Integer(e.getJ()));
+            }
+            if (vertices.contains(e.getI())) {
+                vertices.remove(new Integer(e.getI()));
+            }
+            edgeList.remove(e);
+        }
+
+        Collections.sort(edgeList);
+        updateNodes();
+    }
+    
+    public static void removeEdges() {
+        removeList = new ArrayList();
+
+        /* loop through edgeList and remove all edges that reference node i 
+         *  or any edges between 2 nodes that are already within k of a center
+         **/
+        for (Edge e : edgeList) {
+            if (!vertices.contains(e.getI()) && !vertices.contains(e.getJ())) {
                 removeList.add(e);
             }
         }
@@ -167,6 +199,76 @@ public class KCenterMain {
         Collections.sort(edgeList);
         updateNodes();
     }
+    
+    /**
+     * some pre conditions for smaller cover
+     */
+    public static void preconditions(){
+              /* pre-conditions */
+        preCond = new ArrayList();
+        preEdgeList = new ArrayList();
+        removeEdges();
+        for (Node n : nodeList){
+            int i = n.getI();
+            if (vertices.contains(i) && !solution.contains(i)){
+                if (n.getNumEdges()==0){
+                    preCond.add(i);
+                }else if (n.getNumEdges()==1){
+                    for (Edge e : edgeList){
+                        if (e.getI()== i && !solution.contains(e.getJ()) && !preCond.contains(e.getI()) && !preCond.contains(e.getJ())){
+                            preCond.add(e.getJ());
+                            preEdgeList.add(e);
+                            
+                        } else  if (e.getJ()== i && !solution.contains(e.getI())  && !preCond.contains(e.getI()) && !preCond.contains(e.getJ())){
+                            preCond.add(e.getI());
+                            preEdgeList.add(e);
+                        }
+                    }
+                }
+            }
+        }
+        System.out.println("Preconditions : "+ preCond);
+        for (int i : preCond){
+            addPreSolution(i);
+        }
+
+    }
+    
+      /**
+     *  Add to pre-solution
+     * @param i 
+     */
+    public static void addPreSolution(int i){
+        if (!solution.contains(i)) {
+                solution.add(i);
+                if (vertices.contains(i)) {
+                    vertices.remove(new Integer(i));
+                }
+            } else {
+                System.out.println("#######WTF WHY AM I HERE#########");
+            }
+    }
+    
+    /**
+     *  Add to solution
+     * @param i 
+     */
+    public static void addSolution(int i){
+        if (!solution.contains(i)) {
+                solution.add(i);
+                removeEdges(i);
+                if (vertices.contains(i)) {
+                    vertices.remove(new Integer(i));
+                }
+            } else {
+                System.out.println("#######Garbage Cleaner#########");
+                System.out.println("Clear vertex : "+i);
+                removeEdges(i);
+                if (vertices.contains(i)) {
+                    vertices.remove(new Integer(i));
+                }
+            }
+    }
 
     /**
      * Logic behind placing centers
@@ -174,33 +276,35 @@ public class KCenterMain {
     public static void placeStations() {
 
         solution = new ArrayList();
-
+        preconditions();
+        System.out.println("After pre-conditions edges : " + edgeList.size()+ " vertices : " + vertices.size());
+        
+        
         while (vertices.size() > 0 && edgeList.size() > 0) {
-            //&& nodeList.get(0).getNumEdges() > 0
-            System.out.println("edges : " + edgeList.size() + " vertices : " + vertices.size());
+           
+            // System.out.println("edges : " + edgeList.size() + " vertices : " + vertices.size());
+            // System.out.println("Solution Size : "+solution.size());
+                         
             Node n = nodeList.get(0);
             int i = n.getI();
-            System.out.println(n);
-
-            if (!solution.contains(i)) {
-                solution.add(i);
-                removeEdges(i);
-                if (vertices.contains(i)) {
-                    vertices.remove(new Integer(i));
-                }
-            } else {
-                System.out.println("#######WTF WHY AM I HERE#########");
-            }
-
+            //System.out.println(n);
+            addSolution(i);
+           
+           
         }// end while loop
-
+         // System.out.println(solution.size());
         /* add unreachable nodes to cover */
         if (vertices.size() > 0) {
+            System.out.println(vertices);
             for (int e : vertices) {
                 solution.add(e);
             }
         }
     }
+    
+    //====================
+    //= File Open/Close  =
+    //====================
 
     /**
      *
@@ -264,7 +368,7 @@ public class KCenterMain {
 
             Collections.sort(solution);
             System.out.println("Solution Size : " + solution.size());
-            System.out.println(solution);
+            // System.out.println(solution);
 
             /* print solution to file*/
             int i = 0;
